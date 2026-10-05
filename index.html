@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Direcciones IPv4 · Clase, máscara y subredes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#eaf0f6; --grid:rgba(31,74,130,.09); --surface:#ffffff; --surface2:#f1f5f9;
+  --ink:#0f2238; --ink2:#4b5d73; --line:#c9d5e2; --on:#ffffff;
+  --accent:#c93e14; --theory:#1c58d2;
+  --ca:#187a45; --cb:#1c58d2; --cc:#6a3bd0; --cd:#bf1f59;
+  --ok:#187a45; --bad:#b3261e;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1522; --grid:rgba(120,170,230,.07); --surface:#121f31; --surface2:#182739;
+    --ink:#e8eef7; --ink2:#9fb0c6; --line:#27384e; --on:#0b1522;
+    --accent:#ff8a5e; --theory:#7aa7ff;
+    --ca:#5ed68d; --cb:#7aa7ff; --cc:#a98bff; --cd:#ff7aa8;
+    --ok:#5ed68d; --bad:#ff8a7a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1522; --grid:rgba(120,170,230,.07); --surface:#121f31; --surface2:#182739;
+  --ink:#e8eef7; --ink2:#9fb0c6; --line:#27384e; --on:#0b1522;
+  --accent:#ff8a5e; --theory:#7aa7ff;
+  --ca:#5ed68d; --cb:#7aa7ff; --cc:#a98bff; --cd:#ff7aa8;
+  --ok:#5ed68d; --bad:#ff8a7a;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:64px}
+[hidden]{display:none!important}
+body{
+  margin:0;background-color:var(--bg);color:var(--ink);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;
+  font:400 16px/1.55 'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1220px;margin:0 auto;padding:0 18px}
+code,.num,.mono,output,table,input,select{font-family:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ---------- Cabecera ---------- */
+.top{padding:26px 0 16px}
+.top h1{font-weight:800;font-size:clamp(1.9rem,5vw,3.1rem);line-height:1.02;letter-spacing:-.02em;margin:0 0 8px;max-width:22ch}
+.top p{margin:0;color:var(--ink2);max-width:70ch;font-size:1.02rem}
+.minitoc{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--line)}
+.minitoc .wrap{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-top:2px;padding-bottom:2px}
+.minitoc .wrap::-webkit-scrollbar{display:none}
+.minitoc a{white-space:nowrap;color:var(--ink2);text-decoration:none;font-weight:600;font-size:.88rem;padding:10px 10px;border-bottom:3px solid transparent}
+.minitoc a:hover{color:var(--ink);border-bottom-color:var(--line)}
+
+/* ---------- Cabeceras de zona ---------- */
+.zone-h{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+.zone-h .dot{width:11px;height:11px;border-radius:50%;flex:none}
+.zone-h .dot.dyn{background:var(--accent)}
+.zone-h .dot.th{background:var(--theory)}
+.zone-h h2{font-weight:800;font-size:1.3rem;margin:0;letter-spacing:-.01em}
+.zone-h p{margin:2px 0 0;color:var(--ink2);font-size:.92rem}
+
+/* ---------- Panel ---------- */
+.panel{padding:26px 0 70px}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;align-items:start}
+.main,.side{display:flex;flex-direction:column;gap:20px;min-width:0}
+.side{position:sticky;top:60px}
+@media (max-width:900px){.side{position:static}}
+
+.card{background:var(--surface);border:1.5px solid var(--line);border-top:4px solid var(--accent);border-radius:8px;padding:18px 18px 20px;min-width:0;scroll-margin-top:70px}
+.card.th{border-top-color:var(--theory)}
+.card h3{font-weight:800;font-size:1.15rem;letter-spacing:-.01em;margin:0 0 4px}
+.card .sub{margin:0 0 14px;color:var(--ink2);font-size:.93rem;max-width:66ch}
+
+.aside-b{padding:2px 0}
+.aside-b h4{margin:0 0 4px;font-weight:800;font-size:1rem}
+.aside-b p,.aside-b li{margin:0 0 6px;color:var(--ink2);font-size:.94rem}
+.aside-b ul{margin:0;padding-left:18px}
+
+.num{font-weight:600;white-space:nowrap}
+.mute{color:var(--ink2);font-weight:400}
+.note{color:var(--ink2);font-size:.93rem;margin:8px 0}
+.err{padding:10px 12px;border-radius:8px;border:1.5px solid var(--bad);color:var(--bad);font-weight:600;font-size:.94rem;background:color-mix(in srgb,var(--bad) 8%,var(--surface))}
+
+/* ---------- Botones, campos ---------- */
+.btn{appearance:none;cursor:pointer;font-weight:600;font-size:.92rem;padding:9px 14px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:var(--on);text-decoration:none;display:inline-block}
+.btn:hover{filter:brightness(1.08)}
+.chip{appearance:none;cursor:pointer;font:500 .85rem 'IBM Plex Mono',monospace;padding:5px 10px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface2);color:var(--ink)}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips .lbl{font-size:.85rem;color:var(--ink2);margin-right:2px}
+input[type=text]{font-size:1.05rem;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:100%;min-width:0}
+input[type=text]:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 28%,transparent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.fld{display:flex;flex-direction:column;gap:4px;flex:1 1 170px;min-width:0}
+.fld>span{font-size:.82rem;color:var(--ink2);font-weight:600}
+.calc-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+
+/* ---------- Explorador de bits (constructor IPv4) ---------- */
+.xcols{display:flex;gap:6px;justify-content:center;padding:6px 0 4px}
+.xcol{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1 1 0;min-width:0;max-width:64px}
+.xpv{font:600 .78rem 'IBM Plex Mono',monospace;color:var(--ink2)}
+.xbit{width:100%;height:52px;border-radius:8px;border:2px solid var(--line);background:var(--surface2);color:var(--ink2);font:600 1.5rem 'IBM Plex Mono',monospace;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.xcol.on .xbit{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--ink)}
+.xbit[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.xleg{font-size:.82rem;color:var(--ink2);margin:6px 0 0;text-align:center}
+.readout{margin-top:12px;padding:12px 14px;border-radius:8px;background:color-mix(in srgb,var(--accent) 9%,var(--surface));border:1.5px solid color-mix(in srgb,var(--accent) 35%,var(--line))}
+.rd-main{font:600 1.7rem/1.2 'IBM Plex Mono',monospace;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+.rd-main .dec{color:var(--accent)}
+.rd-eq{font:500 .92rem 'IBM Plex Mono',monospace;color:var(--ink2);margin-top:4px;overflow-wrap:anywhere}
+.rd-msg{margin-top:8px;font-size:.92rem;font-weight:600;color:var(--ink)}
+
+/* ---------- IP: octetos ---------- */
+.ip-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.ipo{min-width:0}
+.ipo .lab{font-size:.8rem;font-weight:600;color:var(--ink2);margin-bottom:2px}
+.ipo .dec{font:600 1.5rem 'IBM Plex Mono',monospace;color:var(--accent);text-align:center;margin-top:2px}
+.dev{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}
+.dev button{text-align:left}
+
+/* ---------- Tabla ---------- */
+.tbl-wrap{overflow-x:auto;border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--ink2);background:var(--surface2)}
+tbody tr:nth-child(even){background:color-mix(in srgb,var(--surface2) 55%,transparent)}
+tbody tr.me{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* ---------- CIDR: franja de bits ---------- */
+.cidr-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:10px}
+.cidr-top .addr{font:600 1.3rem 'IBM Plex Mono',monospace;color:var(--accent)}
+.cidr-top .pfx{display:flex;align-items:center;gap:8px;flex:1 1 220px;min-width:200px}
+.cidr-top output{font:600 1.05rem 'IBM Plex Mono',monospace;color:var(--accent);min-width:2.6em;text-align:right}
+.bitstrip{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:10px 0}
+.bstoct{display:flex;gap:2px;padding:5px;border-radius:6px;background:var(--surface2)}
+.bit{width:17px;height:22px;display:grid;place-items:center;font:600 .74rem 'IBM Plex Mono',monospace;border-radius:3px;color:var(--ink2);background:var(--surface)}
+.bit.net{background:var(--accent);color:var(--on)}
+.bit.host{border:1.5px solid var(--line)}
+.legdot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.legdot.net{background:var(--accent)}
+.legdot.host{background:var(--surface);border:1.5px solid var(--line)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dv{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface);min-width:0}
+.dv-h{font-size:.82rem;color:var(--ink2);font-weight:600;margin-bottom:4px}
+.allb{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px}
+.ab{border:1.5px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--surface);min-width:0}
+.ab.hit{border-color:var(--accent)}
+.ab small{display:block;font-size:.74rem;color:var(--ink2)}
+.ab code{font-size:.95rem;font-weight:600;overflow-wrap:anywhere}
+
+/* ---------- Clases de red (teoría) ---------- */
+.class-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.class-card{border:1.5px solid var(--line);border-left:5px solid var(--c);border-radius:8px;padding:12px 14px;background:var(--surface);min-width:0;transition:box-shadow .15s,border-color .15s}
+.class-card.active{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent)}
+.cl-h{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.cl-letter{font:800 1.3rem 'IBM Plex Mono',monospace;color:var(--c)}
+.cl-range{font-size:.82rem;color:var(--ink2);font-weight:600}
+.cl-tag{margin-left:auto;font-size:.72rem;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface));padding:2px 8px;border-radius:99px}
+.cl-rows{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:6px}
+.cl-rows small{display:block;font-size:.7rem;color:var(--ink2)}
+.cl-rows b{font-size:.88rem}
+.cl-use{margin:0;font-size:.85rem;color:var(--ink2)}
+
+footer{padding:26px 0 40px;border-top:1px solid var(--line);color:var(--ink2);font-size:.9rem}
+
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  .ip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .xbit{height:46px;font-size:1.25rem}
+  .xpv{font-size:.68rem}
+  .wrap{padding:0 14px}
+  .bit{width:14px;font-size:.62rem}
+  .cl-rows{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <h1>Direcciones IPv4</h1>
+  <p>Escribe cualquier dirección IPv4 y descubre al instante su clase, su máscara de red, en cuántas subredes se puede dividir y qué direcciones caben dentro. A la derecha tienes la teoría: qué representa cada uno de esos conceptos.</p>
+</div></header>
+<nav class="minitoc" aria-label="Secciones"><div class="wrap">
+  <a href="#construir">Tu IP</a><a href="#cidr">Máscara y CIDR</a><a href="#subredes">Subredes</a><a href="#ejemplos">Ejemplos</a><a href="#teoria">Teoría</a>
+</div></nav>
+<main id="panel" class="panel"></main>
+<footer><div class="wrap">Material de estudio sobre direccionamiento IPv4: octetos, clases, máscaras, CIDR y subredes.</div></footer>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= Utilidades ================= */
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var plural=function(n,s,p){return n===1?s:p};
+
+/* ================= Aritmética de direcciones ================= */
+function ipToInt(o){return ((o[0]*16777216)+(o[1]*65536)+(o[2]*256)+o[3])>>>0}
+function intToIp(n){n=n>>>0;return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]}
+function fmt(o){return o.join('.')}
+function maskToInt(p){p=Math.max(0,Math.min(32,p));return p===0?0:(p===32?0xFFFFFFFF>>>0:(0xFFFFFFFF<<(32-p))>>>0)}
+function netInfo(ip,p){
+  var ipI=ipToInt(ip),m=maskToInt(p);
+  var netI=(ipI&m)>>>0,bcastI=(ipI|((~m)>>>0))>>>0;
+  var total=Math.pow(2,32-p);
+  var usable=p>=31?0:total-2;
+  var firstI=p>=31?netI:(netI+1)>>>0,lastI=p>=31?bcastI:(bcastI-1)>>>0;
+  return {mask:intToIp(m),maskInt:m,net:intToIp(netI),netInt:netI,bcast:intToIp(bcastI),bcastInt:bcastI,total:total,usable:usable,first:intToIp(firstI),last:intToIp(lastI)};
+}
+function classifyIP(o){
+  if(o[0]===10||(o[0]===172&&o[1]>=16&&o[1]<=31)||(o[0]===192&&o[1]===168)) return 'privada: se usa dentro de redes locales, como la de una casa u oficina';
+  if(o[0]===127) return 'loopback: es tu propio equipo';
+  if(o[0]===169&&o[1]===254) return 'link-local: se asigna sola cuando no hay servidor de direcciones';
+  if(o[0]===0) return 'reservada: significa «esta red»';
+  if(o[0]>=224&&o[0]<=239) return 'multicast (clase D): no identifica un solo equipo, sino un grupo';
+  if(o[0]>=240) return 'reservada/experimental (clase E)';
+  return 'pública: se puede enrutar por Internet';
+}
+function classicClassLetter(o){
+  var f=o[0];
+  if(f<=126) return 'A';
+  if(f<=191) return 'B';
+  if(f<=223) return 'C';
+  if(f<=239) return 'D';
+  return 'E';
+}
+function bitStripHTML(ip,p){
+  var bitsStr=ip.map(function(o){return o.toString(2).padStart(8,'0')}).join('');
+  var html='<div class="bitstrip">';
+  for(var g=0;g<4;g++){
+    html+='<div class="bstoct">';
+    for(var i=0;i<8;i++){
+      var idx=g*8+i;
+      html+='<span class="bit '+(idx<p?'net':'host')+'">'+bitsStr[idx]+'</span>';
+    }
+    html+='</div>';
+  }
+  return html+'</div>';
+}
+
+/* ================= Explorador de bits (constructor de octetos) ================= */
+function makeExplorer(host,opt){
+  var positions=opt.positions,B=2n,max=B**BigInt(positions);
+  var st=new Array(positions).fill(0),refs=[];
+  var wrap=document.createElement('div');
+  wrap.className='xcols'+(opt.compact?' compact':'');
+  function value(){var v=0n;for(var i=0;i<positions;i++)v+=BigInt(st[i])*B**BigInt(i);return v}
+  function paint(){
+    for(var i=0;i<positions;i++){
+      var r=refs[i],d=st[i];
+      r.col.classList.toggle('on',d>0);
+      r.dg.textContent=String(d);
+      r.dg.setAttribute('aria-pressed',d?'true':'false');
+    }
+  }
+  function changed(silent){paint();if(!silent&&opt.onChange)opt.onChange(value(),st.slice())}
+  function setValue(v,silent){
+    v=((v%max)+max)%max;
+    for(var i=0;i<positions;i++){st[i]=Number(v%B);v=v/B}
+    changed(silent);
+  }
+  for(var i=positions-1;i>=0;i--){
+    (function(i){
+      var pv=B**BigInt(i),col=document.createElement('div');
+      col.className='xcol';
+      col.innerHTML='<span class="xpv">'+pv+'</span><button type="button" class="xbit" aria-pressed="false" aria-label="Bit de valor '+pv+'">0</button>';
+      var dg=col.querySelector('.xbit');
+      refs[i]={col:col,dg:dg};
+      dg.addEventListener('click',function(){st[i]=1-st[i];changed()});
+      wrap.appendChild(col);
+    })(i);
+  }
+  host.appendChild(wrap);
+  paint();
+  return {get:value,set:setValue};
+}
+
+/* ================= Datos de las clases (teoría) ================= */
+var CLASSES=[
+ {letter:'A',c:'--ca',range:'1 – 126',mask:'255.0.0.0',prefix:8,netBits:8,hostBits:24,networks:'126',hosts:'16 777 214',
+  use:'Muy pocas redes, pero enormes: cada una admite más de 16 millones de equipos. Se repartieron a organizaciones muy grandes al inicio de Internet.'},
+ {letter:'B',c:'--cb',range:'128 – 191',mask:'255.255.0.0',prefix:16,netBits:16,hostBits:16,networks:'16 384',hosts:'65 534',
+  use:'Tamaño intermedio: pensadas para universidades y empresas medianas-grandes, con miles de equipos por red.'},
+ {letter:'C',c:'--cc',range:'192 – 223',mask:'255.255.255.0',prefix:24,netBits:24,hostBits:8,networks:'2 097 152',hosts:'254',
+  use:'La más común hoy: redes pequeñas de hasta 254 equipos. Por eso 192.168.x.x es la dirección típica de una red doméstica.'},
+ {letter:'D',c:'--cd',range:'224 – 239',mask:'—',prefix:null,netBits:null,hostBits:null,networks:'—',hosts:'No aplica',
+  use:'No reparte equipos individuales: identifica grupos de multicast, un mismo paquete enviado a varios receptores a la vez.'}
+];
+function classCardHTML(c){
+  return '<div class="class-card" style="--c:var('+c.c+')" data-letter="'+c.letter+'"><div class="cl-h"><span class="cl-letter">Clase '+c.letter+'</span><span class="cl-range">1er octeto: '+c.range+'</span><span class="cl-tag" hidden>tu IP</span></div>'+
+    '<div class="cl-rows">'+
+      '<div><small>Máscara por defecto</small><b>'+c.mask+(c.prefix?' <span class="mute">/'+c.prefix+'</span>':'')+'</b></div>'+
+      '<div><small>Bits red / host</small><b>'+(c.netBits?c.netBits+' / '+c.hostBits:'—')+'</b></div>'+
+      '<div><small>Redes posibles</small><b>'+c.networks+'</b></div>'+
+      '<div><small>Hosts por red</small><b>'+c.hosts+'</b></div>'+
+    '</div>'+
+    '<p class="cl-use">'+c.use+'</p></div>';
+}
+
+/* ================= Construcción del panel ================= */
+function build(sec){
+  sec.innerHTML=
+   '<div class="wrap"><div class="grid">'+
+
+   /* ---------------- ZONA DINÁMICA ---------------- */
+   '<div class="main">'+
+    '<div class="zone-h"><span class="dot dyn"></span><div><h2>Zona dinámica</h2><p>Aplica una IPv4 real y todo lo demás se recalcula al momento.</p></div></div>'+
+
+    '<section class="card" id="construir"><h3>Escribe o construye una dirección IPv4</h3><p class="sub">Enciende los bits de cada octeto o escribe la dirección directamente abajo.</p>'+
+      '<div class="ip-grid">'+[0,1,2,3].map(function(i){return '<div class="ipo"><div class="lab">Octeto '+(i+1)+'</div><div class="ipx" data-i="'+i+'"></div><div class="dec" data-d="'+i+'">0</div></div>'}).join('')+'</div>'+
+      '<p class="xleg">Valores de los bits: 128 · 64 · 32 · 16 · 8 · 4 · 2 · 1</p>'+
+      '<div class="readout"><div class="rd-main ip-dec"></div><div class="rd-eq ip-bin"></div><div class="rd-msg ip-cls"></div></div>'+
+      '<div class="calc-form" style="margin-top:12px"><label class="fld"><span>Escribir una IP en decimal</span><input type="text" class="ip-in" inputmode="decimal" autocomplete="off" spellcheck="false" value="192.168.1.10" aria-label="Dirección IP en decimal"></label><button type="button" class="btn ip-go" style="height:42px">Aplicar</button></div>'+
+      '<div class="err ip-err" style="margin-top:10px" hidden></div>'+
+      '<div class="chips" style="margin-top:12px"><span class="lbl">Ejemplos:</span>'+['192.168.1.10','156.158.14.1','10.0.0.1','172.16.254.3','200.24.10.5'].map(function(x){return '<button type="button" class="chip ip-ex">'+x+'</button>'}).join('')+'</div></section>'+
+
+    '<section class="card" id="cidr"><h3>Máscara y prefijo CIDR de tu IP</h3><p class="sub">Mueve el control para decidir cuántos bits (de izquierda a derecha) son de red. El resto son de host.</p>'+
+      '<div class="cidr-top"><span class="mute">Dirección:</span><span class="addr cidr-addr"></span><span class="mute">/</span>'+
+        '<div class="pfx"><input type="range" class="cidr-p" min="0" max="32" value="24" aria-label="Prefijo CIDR"><output class="cidr-pv">24</output></div></div>'+
+      '<div class="cidr-strip"></div>'+
+      '<p class="xleg"><span class="legdot net"></span>bits de red &nbsp; <span class="legdot host"></span>bits de host</p>'+
+      '<div class="two"><div class="dv"><div class="dv-h">Máscara de red</div><div class="num cidr-mask"></div><div class="mute cidr-maskbin" style="font-size:.82rem;margin-top:4px"></div></div>'+
+      '<div class="dv"><div class="dv-h">Direcciones totales en el bloque</div><div class="num cidr-total"></div></div></div>'+
+      '<div class="allb">'+
+        '<div class="ab"><small>Dirección de red</small><code class="cidr-net"></code></div>'+
+        '<div class="ab"><small>Dirección de broadcast</small><code class="cidr-bcast"></code></div>'+
+        '<div class="ab"><small>Primer host útil</small><code class="cidr-first"></code></div>'+
+        '<div class="ab"><small>Último host útil</small><code class="cidr-last"></code></div>'+
+        '<div class="ab hit"><small>Hosts utilizables</small><code class="cidr-usable"></code></div>'+
+      '</div><p class="note cidr-edge" hidden></p></section>'+
+
+    '<section class="card" id="subredes"><h3>Divide esta red en subredes</h3><p class="sub">Le «prestamos» bits al host para crear varias subredes del mismo tamaño. Cuantos más bits se prestan, más subredes salen, pero cada una tiene menos hosts.</p>'+
+      '<div class="chips"><span class="lbl">Bits prestados:</span><span class="sub-chips"></span></div>'+
+      '<div class="readout" style="margin-top:12px"><div class="rd-main sub-info"></div><div class="rd-eq sub-eq"></div></div>'+
+      '<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>#</th><th>Red</th><th>Rango de hosts útiles</th><th>Broadcast</th></tr></thead><tbody class="sub-rows"></tbody></table></div>'+
+      '<p class="note sub-more" hidden></p></section>'+
+
+    '<section class="card" id="ejemplos"><h3>Ejemplo de esta red</h3><p class="sub">Así se vería un pequeño grupo de equipos dentro del bloque que acabas de calcular: comparten la parte de red y solo cambia la parte de host.</p>'+
+      '<div class="dev ejemplo-rows"></div>'+
+      '<p class="note ejemplo-note"></p></section>'+
+
+   '</div>'+
+
+   /* ---------------- ZONA TEÓRICA ---------------- */
+   '<aside class="side" id="teoria">'+
+    '<div class="zone-h"><span class="dot th"></span><div><h2>Zona teórica</h2><p>Qué representa cada cosa, sin depender de ninguna IP en concreto.</p></div></div>'+
+
+    '<section class="card th"><h3>¿Qué es una dirección IPv4?</h3>'+
+      '<div class="aside-b"><ul>'+
+        '<li>Son 32 bits en total, agrupados en 4 octetos (bytes).</li>'+
+        '<li>Cada octeto va de 0 a 255, porque 8 bits dan 2<sup>8</sup> = 256 valores.</li>'+
+        '<li>Se separan con puntos: 192.168.1.10.</li>'+
+        '<li>Existen 2<sup>32</sup> = 4 294 967 296 direcciones posibles en total.</li>'+
+      '</ul></div></section>'+
+
+    '<section class="card th"><h3>Clases de direcciones: A, B, C y D</h3><p class="sub">Antes de CIDR, las direcciones se repartían por «clases» según sus primeros bits: cada clase fija de antemano cuántos bits son de red y cuántos de host. La tuya se resalta abajo.</p>'+
+      '<div class="class-grid">'+CLASSES.map(classCardHTML).join('')+'</div>'+
+      '<p class="note">También existe la <b>clase E</b> (240–255): reservada para uso experimental, sin asignación pública.</p></section>'+
+
+    '<section class="card th"><h3>Qué representan la máscara y el CIDR</h3><div class="aside-b">'+
+      '<p>La <b>máscara</b> dice, de izquierda a derecha, cuántos bits identifican la <b>red</b>; los que sobran identifican al <b>host</b> (el equipo) dentro de ella.</p>'+
+      '<p>La notación <b>CIDR</b> escribe ese número tras una barra: <code>/24</code> significa «los primeros 24 bits son de red». Es una forma corta de escribir la máscara.</p>'+
+    '</div></section>'+
+
+    '<section class="card th"><h3>Por qué .0 y .255 suelen estar reservados</h3><div class="aside-b">'+
+      '<p>No es una regla fija sobre esos dígitos: es consecuencia de la máscara. En cada bloque hay dos direcciones que nunca se asignan a un equipo:</p>'+
+      '<ul><li><b>Dirección de red</b> (bits de host en 0): identifica al bloque completo, no a un equipo.</li>'+
+      '<li><b>Broadcast</b> (bits de host en 1): «todos los equipos de esta red a la vez».</li></ul>'+
+      '<p>En 192.168.1.0/24 caen justo en .0 y .255 porque el octeto de host es el último completo. Con otro prefijo, por ejemplo /28, la red podría ser .16 y el broadcast .31: prueba distintos prefijos en la calculadora de la izquierda.</p>'+
+    '</div></section>'+
+
+    '<section class="card th"><h3>Rangos privados</h3><div class="aside-b"><ul>'+
+      '<li>10.0.0.0/8</li><li>172.16.0.0/12</li><li>192.168.0.0/16</li>'+
+      '</ul><p>Son los típicos de redes domésticas y de oficinas: no se enrutan por Internet pública.</p></div></section>'+
+
+    '<section class="card th"><h3>Qué es «hacer subnetting»</h3><div class="aside-b">'+
+      '<p>Subnetting es tomar una red y dividirla en redes más pequeñas, moviendo la frontera entre «red» y «host» hacia la derecha (aumentando el prefijo).</p>'+
+      '<p>Cada bit que se «presta» al lado de red duplica el número de subredes y divide a la mitad los hosts disponibles en cada una. Es la herramienta que usan las organizaciones para no desperdiciar direcciones.</p>'+
+    '</div></section>'+
+
+   '</aside></div></div>';
+
+  /* ---------- Constructor + octetos ---------- */
+  var exps=[],labels=$$('.dec[data-d]',sec);
+  var dec=$('.ip-dec',sec),bin=$('.ip-bin',sec),cls=$('.ip-cls',sec),inp=$('.ip-in',sec),err=$('.ip-err',sec);
+  function vals(){return exps.map(function(e){return Number(e.get())})}
+  function upd(){
+    if(exps.length<4) return;
+    var v=vals();
+    labels.forEach(function(l,i){l.textContent=v[i]});
+    dec.innerHTML='<span class="num">'+v.join('.')+'</span>';
+    bin.textContent=v.map(function(x){return x.toString(2).padStart(8,'0')}).join('.');
+    cls.textContent='Esta dirección es '+classifyIP(v);
+    if(document.activeElement!==inp) inp.value=v.join('.');
+    highlightClass(classicClassLetter(v));
+    updCIDR();
+  }
+  function highlightClass(letter){
+    $$('.class-card',sec).forEach(function(card){
+      var on=card.getAttribute('data-letter')===letter;
+      card.classList.toggle('active',on);
+      $('.cl-tag',card).hidden=!on;
+    });
+  }
+  $$('.ipx',sec).forEach(function(h){exps.push(makeExplorer(h,{positions:8,compact:true,onChange:upd}))});
+  function setIP(str){
+    var parts=str.trim().split('.');
+    var ok=parts.length===4&&parts.every(function(p){return /^\d{1,3}$/.test(p)&&+p<=255});
+    if(!ok){err.hidden=false;err.textContent='Una IPv4 tiene 4 números entre 0 y 255 separados por puntos. Ejemplo: 192.168.1.10.';return}
+    err.hidden=true;
+    parts.forEach(function(p,i){exps[i].set(BigInt(p),true)});
+    upd();
+  }
+  $('.ip-go',sec).addEventListener('click',function(){setIP(inp.value)});
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')setIP(inp.value)});
+  $$('.ip-ex',sec).forEach(function(c){c.addEventListener('click',function(){inp.value=c.textContent;setIP(c.textContent)})});
+
+  /* ---------- CIDR / máscara ---------- */
+  var pIn=$('.cidr-p',sec),pOut=$('.cidr-pv',sec),strip=$('.cidr-strip',sec),addrOut=$('.cidr-addr',sec);
+  var maskOut=$('.cidr-mask',sec),maskBinOut=$('.cidr-maskbin',sec),totalOut=$('.cidr-total',sec);
+  var netOut=$('.cidr-net',sec),bcastOut=$('.cidr-bcast',sec),firstOut=$('.cidr-first',sec),lastOut=$('.cidr-last',sec),usableOut=$('.cidr-usable',sec),edgeOut=$('.cidr-edge',sec);
+  var cidrPrefix=24,lastNet=null;
+  function updCIDR(){
+    var ip=vals();
+    cidrPrefix=+pIn.value;pOut.textContent=cidrPrefix;
+    addrOut.textContent=fmt(ip);
+    strip.innerHTML=bitStripHTML(ip,cidrPrefix);
+    var info=netInfo(ip,cidrPrefix);
+    lastNet=info;
+    maskOut.textContent=fmt(info.mask);
+    maskBinOut.textContent=info.mask.map(function(o){return o.toString(2).padStart(8,'0')}).join('.');
+    totalOut.textContent=info.total.toLocaleString('es');
+    netOut.textContent=fmt(info.net);
+    bcastOut.textContent=fmt(info.bcast);
+    if(cidrPrefix>=31){
+      firstOut.textContent='—';lastOut.textContent='—';usableOut.textContent='0';
+      edgeOut.hidden=false;
+      edgeOut.textContent=cidrPrefix===32?'Un /32 identifica un solo host: no hay red ni broadcast por separado.':'Un /31 no deja bits para red y broadcast aparte: se usa solo en enlaces punto a punto entre dos equipos.';
+    } else {
+      firstOut.textContent=fmt(info.first);lastOut.textContent=fmt(info.last);usableOut.textContent=info.usable.toLocaleString('es');
+      edgeOut.hidden=true;
+    }
+    renderSubnets();
+    renderEjemplos();
+  }
+  pIn.addEventListener('input',updCIDR);
+
+  /* ---------- Subredes ---------- */
+  var subChips=$('.sub-chips',sec),subInfo=$('.sub-info',sec),subEq=$('.sub-eq',sec),subRows=$('.sub-rows',sec),subMore=$('.sub-more',sec);
+  var borrow=2;
+  function buildSubChips(){
+    var maxBorrow=Math.max(0,32-cidrPrefix);
+    var opts=[];
+    for(var b=1;b<=Math.min(8,maxBorrow);b++) opts.push(b);
+    if(borrow>opts.length) borrow=opts.length||0;
+    subChips.innerHTML=opts.length?opts.map(function(b){return '<button type="button" class="chip sb" data-b="'+b+'" aria-pressed="'+(b===borrow)+'">'+b+'</button>'}).join(''):'<span class="mute">No quedan bits de host para crear subredes en /'+cidrPrefix+'.</span>';
+    $$('.sb',subChips).forEach(function(c){c.addEventListener('click',function(){borrow=+c.getAttribute('data-b');renderSubnets()})});
+  }
+  function renderSubnets(){
+    buildSubChips();
+    if(!borrow||!lastNet){subInfo.innerHTML='';subEq.textContent='';subRows.innerHTML='';subMore.hidden=true;return}
+    var newPrefix=cidrPrefix+borrow;
+    var count=Math.pow(2,borrow);
+    var blockSize=Math.pow(2,32-newPrefix);
+    subInfo.innerHTML='Prestando '+borrow+' '+plural(borrow,'bit','bits')+': de /'+cidrPrefix+' pasamos a <b>/'+newPrefix+'</b>';
+    subEq.textContent='2^'+borrow+' = '+count+' subredes, cada una con máscara '+fmt(intToIp(maskToInt(newPrefix)))+' y '+(newPrefix>=31?'0 hosts utilizables (bloque de borde)':(blockSize-2).toLocaleString('es')+' hosts utilizables');
+    var rows='',shown=Math.min(count,16);
+    var myIp=ipToInt(vals());
+    for(var i=0;i<shown;i++){
+      var netI=(lastNet.netInt+i*blockSize)>>>0;
+      var info=netInfo(intToIp(netI),newPrefix);
+      var mine=myIp>=info.netInt&&myIp<=info.bcastInt;
+      rows+='<tr class="'+(mine?'me':'')+'"><td>'+(i+1)+'</td><td>'+fmt(info.net)+'/'+newPrefix+'</td><td>'+(newPrefix>=31?'—':fmt(info.first)+' – '+fmt(info.last))+'</td><td>'+fmt(info.bcast)+'</td></tr>';
+    }
+    subRows.innerHTML=rows;
+    if(count>shown){subMore.hidden=false;subMore.textContent='… y '+(count-shown)+' subredes más, siguiendo el mismo patrón.'} else subMore.hidden=true;
+  }
+
+  /* ---------- Ejemplo de red ---------- */
+  var ejRows=$('.ejemplo-rows',sec),ejNote=$('.ejemplo-note',sec);
+  function renderEjemplos(){
+    if(!lastNet||cidrPrefix>=31){ejRows.innerHTML='<span class="mute">Este bloque no tiene hosts individuales que ejemplificar.</span>';ejNote.textContent='';return}
+    var f=lastNet.firstInt=ipToInt(lastNet.first),l=ipToInt(lastNet.last);
+    var picks=[['Primer host útil (p. ej. el router)',f],['Segundo equipo',Math.min(f+1,l)],['Tercer equipo',Math.min(f+2,l)],['Último host útil',l]];
+    ejRows.innerHTML=picks.map(function(p){return '<span>'+p[0]+'</span><button type="button" class="chip ip-ex">'+fmt(intToIp(p[1]))+'</button>'}).join('');
+    ejNote.textContent='Todos comparten los primeros '+cidrPrefix+' bits (la parte de red) y solo cambia la parte de host. Toca cualquiera para cargarlo en el constructor de arriba.';
+    $$('.ip-ex',ejRows).forEach(function(c){c.addEventListener('click',function(){inp.value=c.textContent;setIP(c.textContent);$('#construir',sec).scrollIntoView({behavior:'smooth',block:'start'})})});
+  }
+
+  setIP('192.168.1.10');
+}
+
+build($('#panel'));
+})();
+</script>
+</body>
+</html>
